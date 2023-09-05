@@ -93,6 +93,7 @@ function Get-ModulesFeatureOutline {
 
     # Load external functions
     . (Join-Path $PSScriptRoot 'helper' 'Get-PipelineStatusUrl.ps1')
+    . (Join-Path $PSScriptRoot 'helper' 'Get-SpecsAlignedResourceName.ps1')
 
     if ($OnlyTopLevel) {
         $moduleTemplatePaths = (Get-ChildItem $ModuleFolderPath -Recurse -Filter 'main.bicep' -Depth 2).FullName
@@ -128,15 +129,18 @@ function Get-ModulesFeatureOutline {
         $isTopLevelModule = ($fullResourcePath -split '/').Count -eq 2
         if ($AddStatusBadges -and $isTopLevelModule) {
 
-            $provider = ($fullResourcePath -split '/')[0]
-            $resourceType = ($fullResourcePath -split '/')[1]
+            $specsAlignedResourceName = (Get-SpecsAlignedResourceName -ResourceIdentifier $fullResourcePath).ToLower()
+
+            $provider = ($specsAlignedResourceName -split '/')[0] -replace 'Microsoft', 'ms'
+            $resourceType = ($specsAlignedResourceName -split '/')[1]
+
 
             $statusInputObject = @{
                 RepositoryName     = $RepositoryName
                 Organization       = $Organization
                 Environment        = $Environment
                 ProjectName        = $ProjectName
-                PipelineFileName   = ((('ms.{0}.{1}.yml' -f $provider, $resourceType) -replace '-', '') -replace '/', '.')
+                PipelineFileName   = ((('{0}.{1}.yml' -f $provider, $resourceType) -replace '-', '') -replace '/', '.')
                 PipelineFolderPath = $Environment -eq 'GitHub' ? (Join-Path '.github' 'workflows') : (Join-Path '.azuredevops' 'modulePipelines')
             }
 
@@ -147,36 +151,48 @@ function Get-ModulesFeatureOutline {
         if ([regex]::Match($moduleContentString, '(?m)^\s*param roleAssignments array\s*=.+').Success) {
             $summaryData.supportsRBAC++
             $moduleDataItem['RBAC'] = $true
+        } else {
+            $moduleDataItem['RBAC'] = $false
         }
 
         # Supports Locks
         if ([regex]::Match($moduleContentString, '(?m)^\s*param lock string\s*=.+').Success) {
             $summaryData.supportsLocks++
             $moduleDataItem['Locks'] = $true
+        } else {
+            $moduleDataItem['Locks'] = $false
         }
 
         # Supports Tags
         if ([regex]::Match($moduleContentString, '(?m)^\s*param tags object\s*=.+').Success) {
             $summaryData.supportsTags++
             $moduleDataItem['Tags'] = $true
+        } else {
+            $moduleDataItem['Tags'] = $false
         }
 
         # Supports Diagnostics
         if ([regex]::Match($moduleContentString, '(?m)^\s*param diagnosticWorkspaceId string\s*=.+').Success) {
             $summaryData.supportsDiagnostics++
             $moduleDataItem['Diag'] = $true
+        } else {
+            $moduleDataItem['Diag'] = $false
         }
 
         # Supports Private Endpoints
         if ([regex]::Match($moduleContentString, '(?m)^\s*param privateEndpoints array\s*=.+').Success) {
             $summaryData.supportsEndpoints++
             $moduleDataItem['PE'] = $true
+        } else {
+            $moduleDataItem['PE'] = $false
         }
 
         # Supports PIPs
         if ([regex]::Match($moduleContentString, '(?m)^\s*param publicIPAddressObject object\s*=.+').Success) {
             $summaryData.supportsPipDeployment++
             $moduleDataItem['PIP'] = $true
+        } else {
+            $moduleDataItem['PIP'] = $false
         }
 
         # Number of children
@@ -229,7 +245,7 @@ function Get-ModulesFeatureOutline {
             $counter++
         }
 
-        $markdownTable += '| Sum | | {0} |' -f (($summaryData.Keys | ForEach-Object { $summaryData[$_] }) -join ' | ')
+        $markdownTable += '| Sum | | | {0} |' -f (($summaryData.Keys | ForEach-Object { $summaryData[$_] }) -join ' | ')
 
         return $markdownTable | Out-String
 

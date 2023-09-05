@@ -18,7 +18,7 @@ param serviceShort string = 'srswpscom'
 param enableDefaultTelemetry bool = true
 
 @description('Optional. A token to inject into the name of each resource.')
-param namePrefix string = '<<namePrefix>>'
+param namePrefix string = '[[namePrefix]]'
 
 // ============ //
 // Dependencies //
@@ -86,6 +86,7 @@ module testDeployment '../../main.bicep' = {
         service: 'webpubsub'
         subnetResourceId: nestedDependencies.outputs.subnetResourceId
         tags: {
+          'hidden-title': 'This is visible in the resource name'
           Environment: 'Non-Prod'
           Role: 'DeploymentValidation'
         }
@@ -105,6 +106,7 @@ module testDeployment '../../main.bicep' = {
     sku: 'Standard_S1'
     systemAssignedIdentity: true
     tags: {
+      'hidden-title': 'This is visible in the resource name'
       Environment: 'Non-Prod'
       Role: 'DeploymentValidation'
     }
