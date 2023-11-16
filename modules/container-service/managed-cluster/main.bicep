@@ -9,21 +9,33 @@ param name string
 param location string = resourceGroup().location
 
 @description('Optional. Specifies the DNS prefix specified when creating the managed cluster.')
-param aksClusterDnsPrefix string = name
+param dnsPrefix string = name
 
-@description('Optional. Enables system assigned managed identity on the resource.')
-param systemAssignedIdentity bool = false
+@description('Optional. The managed identity definition for this resource. Only one type of identity is supported: system-assigned or user-assigned, but not both.')
+param managedIdentities managedIdentitiesType
 
-@description('Optional. The ID(s) to assign to the resource.')
-param userAssignedIdentities object = {}
+@description('Optional. Network dataplane used in the Kubernetes cluster. Not compatible with kubenet network plugin.')
+@allowed([
+  ''
+  'azure'
+  'cilium'
+])
+param networkDataplane string = ''
 
-@description('Optional. Specifies the network plugin used for building Kubernetes network. - azure or kubenet.')
+@description('Optional. Specifies the network plugin used for building Kubernetes network.')
 @allowed([
   ''
   'azure'
   'kubenet'
 ])
-param aksClusterNetworkPlugin string = ''
+param networkPlugin string = ''
+
+@description('Optional. Network plugin mode used for building the Kubernetes network. Not compatible with kubenet network plugin.')
+@allowed([
+  ''
+  'overlay'
+])
+param networkPluginMode string = ''
 
 @description('Optional. Specifies the network policy used for building Kubernetes network. - calico or azure.')
 @allowed([
@@ -31,23 +43,23 @@ param aksClusterNetworkPlugin string = ''
   'azure'
   'calico'
 ])
-param aksClusterNetworkPolicy string = ''
+param networkPolicy string = ''
 
 @description('Optional. Specifies the CIDR notation IP range from which to assign pod IPs when kubenet is used.')
-param aksClusterPodCidr string = ''
+param podCidr string = ''
 
 @description('Optional. A CIDR notation IP range from which to assign service cluster IPs. It must not overlap with any Subnet IP ranges.')
-param aksClusterServiceCidr string = ''
+param serviceCidr string = ''
 
 @description('Optional. Specifies the IP address assigned to the Kubernetes DNS service. It must be within the Kubernetes service address range specified in serviceCidr.')
-param aksClusterDnsServiceIP string = ''
+param dnsServiceIP string = ''
 
 @description('Optional. Specifies the sku of the load balancer used by the virtual machine scale sets used by nodepools.')
 @allowed([
   'basic'
   'standard'
 ])
-param aksClusterLoadBalancerSku string = 'standard'
+param loadBalancerSku string = 'standard'
 
 @description('Optional. Outbound IP Count for the Load balancer.')
 param managedOutboundIPCount int = 0
@@ -57,26 +69,26 @@ param managedOutboundIPCount int = 0
   'loadBalancer'
   'userDefinedRouting'
 ])
-param aksClusterOutboundType string = 'loadBalancer'
+param outboundType string = 'loadBalancer'
 
-@description('Optional. Tier of a managed cluster SKU. - Free or Paid.')
+@description('Optional. Tier of a managed cluster SKU. - Free or Standard.')
 @allowed([
   'Free'
   'Premium'
   'Standard'
 ])
-param aksClusterSkuTier string = 'Free'
+param skuTier string = 'Free'
 
 @description('Optional. Version of Kubernetes specified when creating the managed cluster.')
-param aksClusterKubernetesVersion string = ''
+param kubernetesVersion string = ''
 
 @description('Optional. Specifies the administrator username of Linux virtual machines.')
-param aksClusterAdminUsername string = 'azureuser'
+param adminUsername string = 'azureuser'
 
 @description('Optional. Specifies the SSH RSA public key string for the Linux nodes.')
-param aksClusterSshPublicKey string = ''
+param sshPublicKey string = ''
 
-@description('Optional. Information about a service principal identity for the cluster to use for manipulating Azure APIs.')
+@description('Conditional. Information about a service principal identity for the cluster to use for manipulating Azure APIs. Required if no managed identities are assigned to the cluster.')
 param aksServicePrincipalProfile object = {}
 
 @description('Optional. The client AAD application ID.')
@@ -245,6 +257,17 @@ param autoScalerProfileSkipNodesWithLocalStorage string = 'true'
 @description('Optional. Specifies if nodes with system pods should be skipped for the auto-scaler of the AKS cluster.')
 param autoScalerProfileSkipNodesWithSystemPods string = 'true'
 
+@allowed([
+  'node-image'
+  'none'
+  'patch'
+  'rapid'
+  'stable'
+  ''
+])
+@description('Optional. Auto-upgrade channel on the AKS cluster.')
+param autoUpgradeProfileUpgradeChannel string = ''
+
 @description('Optional. Running in Kubenet is disabled by default due to the security related nature of AAD Pod Identity and the risks of IP spoofing.')
 param podIdentityProfileAllowNetworkPluginKubenet bool = false
 
@@ -260,17 +283,36 @@ param podIdentityProfileUserAssignedIdentityExceptions array = []
 @description('Optional. Whether the The OIDC issuer profile of the Managed Cluster is enabled.')
 param enableOidcIssuerProfile bool = false
 
+@description('Optional. Whether to enable Workload Identity. Requires OIDC issuer profile to be enabled.')
+param enableWorkloadIdentity bool = false
+
 @description('Optional. Whether to enable Azure Defender.')
 param enableAzureDefender bool = false
 
-@description('Optional. Whether to enable Kubernetes pod security policy.')
+@description('Optional. Whether to enable Kubernetes pod security policy. Requires enabling the pod security policy feature flag on the subscription.')
 param enablePodSecurityPolicy bool = false
 
-@description('Optional. Resource ID of the diagnostic storage account.')
-param diagnosticStorageAccountId string = ''
+@description('Optional. Whether the AzureBlob CSI Driver for the storage profile is enabled.')
+param enableStorageProfileBlobCSIDriver bool = false
 
-@description('Optional. Resource ID of the diagnostic log analytics workspace.')
-param diagnosticWorkspaceId string = ''
+@description('Optional. Whether the AzureDisk CSI Driver for the storage profile is enabled.')
+param enableStorageProfileDiskCSIDriver bool = false
+
+@description('Optional. Whether the AzureFile CSI Driver for the storage profile is enabled.')
+param enableStorageProfileFileCSIDriver bool = false
+
+@description('Optional. Whether the snapshot controller for the storage profile is enabled.')
+param enableStorageProfileSnapshotController bool = false
+
+@allowed([
+  'AKSLongTermSupport'
+  'KubernetesOfficial'
+])
+@description('Optional. The support plan for the Managed Cluster.')
+param supportPlan string = 'KubernetesOfficial'
+
+@description('Optional. The diagnostic settings of the service.')
+param diagnosticSettings diagnosticSettingType
 
 @description('Optional. Specifies whether the OMS agent is enabled.')
 param omsAgentEnabled bool = true
@@ -278,28 +320,17 @@ param omsAgentEnabled bool = true
 @description('Optional. Resource ID of the monitoring log analytics workspace.')
 param monitoringWorkspaceId string = ''
 
-@description('Optional. Resource ID of the diagnostic event hub authorization rule for the Event Hubs namespace in which the event hub should be created or streamed to.')
-param diagnosticEventHubAuthorizationRuleId string = ''
-
-@description('Optional. Name of the diagnostic event hub within the namespace to which logs are streamed. Without this, an event hub is created for each log category.')
-param diagnosticEventHubName string = ''
-
 @description('Optional. Enable telemetry via a Globally Unique Identifier (GUID).')
 param enableDefaultTelemetry bool = true
 
 @description('Optional. Array of role assignment objects that contain the \'roleDefinitionIdOrName\' and \'principalId\' to define RBAC role assignments on this resource. In the roleDefinitionIdOrName attribute, you can provide either the display name of the role definition, or its fully qualified ID in the following format: \'/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11\'.')
-param roleAssignments array = []
+param roleAssignments roleAssignmentType
 
-@allowed([
-  ''
-  'CanNotDelete'
-  'ReadOnly'
-])
-@description('Optional. Specify the type of lock.')
-param lock string = ''
+@description('Optional. The lock settings of the service.')
+param lock lockType
 
 @description('Optional. Tags of the resource.')
-param tags object = {}
+param tags object?
 
 @description('Optional. The resource ID of the disc encryption set to apply to the cluster. For security reasons, this value should be provided.')
 param diskEncryptionSetID string = ''
@@ -311,64 +342,25 @@ param fluxConfigurationProtectedSettings object = {}
 @description('Optional. Settings and configurations for the flux extension.')
 param fluxExtension object = {}
 
-@description('Optional. The name of logs that will be streamed. "allLogs" includes all possible logs for the resource. Set to \'\' to disable log collection.')
-@allowed([
-  ''
-  'allLogs'
-  'kube-apiserver'
-  'kube-audit'
-  'kube-controller-manager'
-  'kube-scheduler'
-  'cluster-autoscaler'
-  'kube-audit-admin'
-  'guard'
-])
-param diagnosticLogCategoriesToEnable array = [
-  'allLogs'
-]
+@description('Optional. Configurations for provisioning the cluster with HTTP proxy servers.')
+param httpProxyConfig object = {}
 
-@description('Optional. The name of metrics that will be streamed.')
-@allowed([
-  'AllMetrics'
-])
-param diagnosticMetricsToEnable array = [
-  'AllMetrics'
-]
+@description('Optional. Identities associated with the cluster.')
+param identityProfile object = {}
 
-@description('Optional. The name of the diagnostic setting, if deployed. If left empty, it defaults to "<resourceName>-diagnosticSettings".')
-param diagnosticSettingsName string = ''
+var formattedUserAssignedIdentities = reduce(map((managedIdentities.?userAssignedResourceIds ?? []), (id) => { '${id}': {} }), {}, (cur, next) => union(cur, next)) // Converts the flat array to an object like { '${id1}': {}, '${id2}': {} }
 
-var diagnosticsLogsSpecified = [for category in filter(diagnosticLogCategoriesToEnable, item => item != 'allLogs' && item != ''): {
-  category: category
-  enabled: true
-}]
+var identity = !empty(managedIdentities) ? {
+  type: (managedIdentities.?systemAssigned ?? false) ? 'SystemAssigned' : (!empty(managedIdentities.?userAssignedResourceIds ?? {}) ? 'UserAssigned' : null)
+  userAssignedIdentities: !empty(formattedUserAssignedIdentities) ? formattedUserAssignedIdentities : null
+} : null
 
-var diagnosticsLogs = contains(diagnosticLogCategoriesToEnable, 'allLogs') ? [
-  {
-    categoryGroup: 'allLogs'
-    enabled: true
-  }
-] : contains(diagnosticLogCategoriesToEnable, '') ? [] : diagnosticsLogsSpecified
-
-var diagnosticsMetrics = [for metric in diagnosticMetricsToEnable: {
-  category: metric
-  timeGrain: null
-  enabled: true
-}]
-
-var identityType = systemAssignedIdentity ? 'SystemAssigned' : (!empty(userAssignedIdentities) ? 'UserAssigned' : 'None')
-
-var identity = {
-  type: identityType
-  userAssignedIdentities: !empty(userAssignedIdentities) ? userAssignedIdentities : null
-}
-
-var aksClusterLinuxProfile = {
-  adminUsername: aksClusterAdminUsername
+var linuxProfile = {
+  adminUsername: adminUsername
   ssh: {
     publicKeys: [
       {
-        keyData: aksClusterSshPublicKey
+        keyData: sshPublicKey
       }
     ]
   }
@@ -383,6 +375,28 @@ var lbProfile = {
 
 var enableReferencedModulesTelemetry = false
 
+var builtInRoleNames = {
+  'Azure Kubernetes Fleet Manager Contributor Role': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '63bb64ad-9799-4770-b5c3-24ed299a07bf')
+  'Azure Kubernetes Fleet Manager RBAC Admin': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '434fb43a-c01c-447e-9f67-c3ad923cfaba')
+  'Azure Kubernetes Fleet Manager RBAC Cluster Admin': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '18ab4d3d-a1bf-4477-8ad9-8359bc988f69')
+  'Azure Kubernetes Fleet Manager RBAC Reader': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '30b27cfc-9c84-438e-b0ce-70e35255df80')
+  'Azure Kubernetes Fleet Manager RBAC Writer': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5af6afb3-c06c-4fa4-8848-71a8aee05683')
+  'Azure Kubernetes Service Cluster Admin Role': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0ab0b1a8-8aac-4efd-b8c2-3ee1fb270be8')
+  'Azure Kubernetes Service Cluster Monitoring User': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '1afdec4b-e479-420e-99e7-f82237c7c5e6')
+  'Azure Kubernetes Service Cluster User Role': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4abbcc35-e782-43d8-92c5-2d3f1bd2253f')
+  'Azure Kubernetes Service Contributor Role': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ed7f3fbd-7b88-4dd4-9017-9adb7ce333f8')
+  'Azure Kubernetes Service RBAC Admin': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '3498e952-d568-435e-9b2c-8d77e338d7f7')
+  'Azure Kubernetes Service RBAC Cluster Admin': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b1ff04bb-8a4e-4dc4-8eb5-8693973ce19b')
+  'Azure Kubernetes Service RBAC Reader': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f6c6a51-bcf8-42ba-9220-52d62157d7db')
+  'Azure Kubernetes Service RBAC Writer': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a7ffa36f-339b-4b5c-8bdf-e2c188b2c0eb')
+  Contributor: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+  'Kubernetes Agentless Operator': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'd5a2ae44-610b-4500-93be-660a0c5f5ca6')
+  Owner: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')
+  Reader: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')
+  'Role Based Access Control Administrator (Preview)': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f58310d9-a9f6-439a-9e8d-f62e7b41a168')
+  'User Access Administrator': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9')
+}
+
 resource defaultTelemetry 'Microsoft.Resources/deployments@2022-09-01' = if (enableDefaultTelemetry) {
   name: 'pid-47ed15a6-730a-4827-bcb4-0fd963ffbd82-${uniqueString(deployment().name, location)}'
   properties: {
@@ -395,26 +409,30 @@ resource defaultTelemetry 'Microsoft.Resources/deployments@2022-09-01' = if (ena
   }
 }
 
-resource managedCluster 'Microsoft.ContainerService/managedClusters@2023-05-02-preview' = {
+resource managedCluster 'Microsoft.ContainerService/managedClusters@2023-07-02-preview' = {
   name: name
   location: location
   tags: tags
   identity: identity
   sku: {
     name: 'Base'
-    tier: aksClusterSkuTier
+    tier: skuTier
   }
   properties: {
+    httpProxyConfig: !empty(httpProxyConfig) ? httpProxyConfig : null
+    identityProfile: !empty(identityProfile) ? identityProfile : null
     diskEncryptionSetID: !empty(diskEncryptionSetID) ? diskEncryptionSetID : null
-    kubernetesVersion: (empty(aksClusterKubernetesVersion) ? null : aksClusterKubernetesVersion)
-    dnsPrefix: aksClusterDnsPrefix
+    kubernetesVersion: (empty(kubernetesVersion) ? null : kubernetesVersion)
+    dnsPrefix: dnsPrefix
     agentPoolProfiles: primaryAgentPoolProfile
-    linuxProfile: (empty(aksClusterSshPublicKey) ? null : aksClusterLinuxProfile)
+    linuxProfile: (empty(sshPublicKey) ? null : linuxProfile)
     servicePrincipalProfile: (empty(aksServicePrincipalProfile) ? null : aksServicePrincipalProfile)
     ingressProfile: {
       webAppRouting: {
         enabled: webApplicationRoutingEnabled
-        dnsZoneResourceId: !empty(dnsZoneResourceId) ? any(dnsZoneResourceId) : null
+        dnsZoneResourceIds: !empty(dnsZoneResourceId) ? [
+          dnsZoneResourceId
+        ] : null
       }
     }
     addonProfiles: {
@@ -465,13 +483,15 @@ resource managedCluster 'Microsoft.ContainerService/managedClusters@2023-05-02-p
     nodeResourceGroup: nodeResourceGroup
     enablePodSecurityPolicy: enablePodSecurityPolicy
     networkProfile: {
-      networkPlugin: !empty(aksClusterNetworkPlugin) ? any(aksClusterNetworkPlugin) : null
-      networkPolicy: !empty(aksClusterNetworkPolicy) ? any(aksClusterNetworkPolicy) : null
-      podCidr: !empty(aksClusterPodCidr) ? aksClusterPodCidr : null
-      serviceCidr: !empty(aksClusterServiceCidr) ? aksClusterServiceCidr : null
-      dnsServiceIP: !empty(aksClusterDnsServiceIP) ? aksClusterDnsServiceIP : null
-      outboundType: aksClusterOutboundType
-      loadBalancerSku: aksClusterLoadBalancerSku
+      networkDataplane: !empty(networkDataplane) ? any(networkDataplane) : null
+      networkPlugin: !empty(networkPlugin) ? any(networkPlugin) : null
+      networkPluginMode: !empty(networkPluginMode) ? any(networkPluginMode) : null
+      networkPolicy: !empty(networkPolicy) ? any(networkPolicy) : null
+      podCidr: !empty(podCidr) ? podCidr : null
+      serviceCidr: !empty(serviceCidr) ? serviceCidr : null
+      dnsServiceIP: !empty(dnsServiceIP) ? dnsServiceIP : null
+      outboundType: outboundType
+      loadBalancerSku: loadBalancerSku
       loadBalancerProfile: managedOutboundIPCount != 0 ? lbProfile : null
     }
     aadProfile: {
@@ -502,6 +522,9 @@ resource managedCluster 'Microsoft.ContainerService/managedClusters@2023-05-02-p
       'skip-nodes-with-local-storage': autoScalerProfileSkipNodesWithLocalStorage
       'skip-nodes-with-system-pods': autoScalerProfileSkipNodesWithSystemPods
     }
+    autoUpgradeProfile: {
+      upgradeChannel: !empty(autoUpgradeProfileUpgradeChannel) ? autoUpgradeProfileUpgradeChannel : null
+    }
     apiServerAccessProfile: {
       authorizedIPRanges: authorizedIPRanges
       disableRunCommand: disableRunCommand
@@ -515,12 +538,32 @@ resource managedCluster 'Microsoft.ContainerService/managedClusters@2023-05-02-p
       userAssignedIdentities: podIdentityProfileUserAssignedIdentities
       userAssignedIdentityExceptions: podIdentityProfileUserAssignedIdentityExceptions
     }
-    securityProfile: enableAzureDefender ? {
-      azureDefender: {
-        enabled: enableAzureDefender
+    securityProfile: {
+      defender: enableAzureDefender ? {
+        securityMonitoring: {
+          enabled: enableAzureDefender
+        }
         logAnalyticsWorkspaceResourceId: !empty(monitoringWorkspaceId) ? monitoringWorkspaceId : null
+      } : null
+      workloadIdentity: enableWorkloadIdentity ? {
+        enabled: enableWorkloadIdentity
+      } : null
+    }
+    storageProfile: {
+      blobCSIDriver: {
+        enabled: enableStorageProfileBlobCSIDriver
       }
-    } : null
+      diskCSIDriver: {
+        enabled: enableStorageProfileDiskCSIDriver
+      }
+      fileCSIDriver: {
+        enabled: enableStorageProfileFileCSIDriver
+      }
+      snapshotController: {
+        enabled: enableStorageProfileSnapshotController
+      }
+    }
+    supportPlan: supportPlan
   }
 }
 
@@ -546,7 +589,7 @@ module managedCluster_agentPools 'agent-pool/main.bicep' = [for (agentPool, inde
     nodeLabels: contains(agentPool, 'nodeLabels') ? agentPool.nodeLabels : {}
     nodePublicIpPrefixId: contains(agentPool, 'nodePublicIpPrefixId') ? agentPool.nodePublicIpPrefixId : ''
     nodeTaints: contains(agentPool, 'nodeTaints') ? agentPool.nodeTaints : []
-    orchestratorVersion: contains(agentPool, 'orchestratorVersion') ? agentPool.orchestratorVersion : aksClusterKubernetesVersion
+    orchestratorVersion: contains(agentPool, 'orchestratorVersion') ? agentPool.orchestratorVersion : kubernetesVersion
     osDiskSizeGB: contains(agentPool, 'osDiskSizeGB') ? agentPool.osDiskSizeGB : -1
     osDiskType: contains(agentPool, 'osDiskType') ? agentPool.osDiskType : ''
     osSku: contains(agentPool, 'osSku') ? agentPool.osSku : ''
@@ -557,7 +600,7 @@ module managedCluster_agentPools 'agent-pool/main.bicep' = [for (agentPool, inde
     scaleSetEvictionPolicy: contains(agentPool, 'scaleSetEvictionPolicy') ? agentPool.scaleSetEvictionPolicy : 'Delete'
     scaleSetPriority: contains(agentPool, 'scaleSetPriority') ? agentPool.scaleSetPriority : ''
     spotMaxPrice: contains(agentPool, 'spotMaxPrice') ? agentPool.spotMaxPrice : -1
-    tags: contains(agentPool, 'tags') ? agentPool.tags : {}
+    tags: agentPool.?tags ?? tags
     type: contains(agentPool, 'type') ? agentPool.type : ''
     maxSurge: contains(agentPool, 'maxSurge') ? agentPool.maxSurge : ''
     vmSize: contains(agentPool, 'vmSize') ? agentPool.vmSize : 'Standard_D2s_v3'
@@ -584,43 +627,57 @@ module managedCluster_extension '../../kubernetes-configuration/extension/main.b
   }
 }
 
-resource managedCluster_lock 'Microsoft.Authorization/locks@2020-05-01' = if (!empty(lock)) {
-  name: '${managedCluster.name}-${lock}-lock'
+resource managedCluster_lock 'Microsoft.Authorization/locks@2020-05-01' = if (!empty(lock ?? {}) && lock.?kind != 'None') {
+  name: lock.?name ?? 'lock-${name}'
   properties: {
-    level: any(lock)
-    notes: lock == 'CanNotDelete' ? 'Cannot delete resource or child resources.' : 'Cannot modify the resource or child resources.'
+    level: lock.?kind ?? ''
+    notes: lock.?kind == 'CanNotDelete' ? 'Cannot delete resource or child resources.' : 'Cannot delete or modify the resource or child resources.'
   }
   scope: managedCluster
 }
 
-resource managedCluster_diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if ((!empty(diagnosticStorageAccountId)) || (!empty(diagnosticWorkspaceId)) || (!empty(diagnosticEventHubAuthorizationRuleId)) || (!empty(diagnosticEventHubName))) {
-  name: !empty(diagnosticSettingsName) ? diagnosticSettingsName : '${name}-diagnosticSettings'
+resource managedCluster_diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = [for (diagnosticSetting, index) in (diagnosticSettings ?? []): {
+  name: diagnosticSetting.?name ?? '${name}-diagnosticSettings'
   properties: {
-    storageAccountId: !empty(diagnosticStorageAccountId) ? diagnosticStorageAccountId : null
-    workspaceId: !empty(diagnosticWorkspaceId) ? diagnosticWorkspaceId : null
-    eventHubAuthorizationRuleId: !empty(diagnosticEventHubAuthorizationRuleId) ? diagnosticEventHubAuthorizationRuleId : null
-    eventHubName: !empty(diagnosticEventHubName) ? diagnosticEventHubName : null
-    metrics: diagnosticsMetrics
-    logs: diagnosticsLogs
+    storageAccountId: diagnosticSetting.?storageAccountResourceId
+    workspaceId: diagnosticSetting.?workspaceResourceId
+    eventHubAuthorizationRuleId: diagnosticSetting.?eventHubAuthorizationRuleResourceId
+    eventHubName: diagnosticSetting.?eventHubName
+    metrics: diagnosticSetting.?metricCategories ?? [
+      {
+        category: 'AllMetrics'
+        timeGrain: null
+        enabled: true
+      }
+    ]
+    logs: diagnosticSetting.?logCategoriesAndGroups ?? [
+      {
+        categoryGroup: 'AllLogs'
+        enabled: true
+      }
+    ]
+    marketplacePartnerId: diagnosticSetting.?marketplacePartnerResourceId
+    logAnalyticsDestinationType: diagnosticSetting.?logAnalyticsDestinationType
   }
   scope: managedCluster
-}
+}]
 
-module managedCluster_roleAssignments '.bicep/nested_roleAssignments.bicep' = [for (roleAssignment, index) in roleAssignments: {
-  name: '${uniqueString(deployment().name, location)}-ManagedCluster-Rbac-${index}'
-  params: {
-    description: contains(roleAssignment, 'description') ? roleAssignment.description : ''
-    principalIds: roleAssignment.principalIds
-    principalType: contains(roleAssignment, 'principalType') ? roleAssignment.principalType : ''
-    roleDefinitionIdOrName: roleAssignment.roleDefinitionIdOrName
-    condition: contains(roleAssignment, 'condition') ? roleAssignment.condition : ''
-    delegatedManagedIdentityResourceId: contains(roleAssignment, 'delegatedManagedIdentityResourceId') ? roleAssignment.delegatedManagedIdentityResourceId : ''
-    resourceId: managedCluster.id
+resource managedCluster_roleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for (roleAssignment, index) in (roleAssignments ?? []): {
+  name: guid(managedCluster.id, roleAssignment.principalId, roleAssignment.roleDefinitionIdOrName)
+  properties: {
+    roleDefinitionId: contains(builtInRoleNames, roleAssignment.roleDefinitionIdOrName) ? builtInRoleNames[roleAssignment.roleDefinitionIdOrName] : roleAssignment.roleDefinitionIdOrName
+    principalId: roleAssignment.principalId
+    description: roleAssignment.?description
+    principalType: roleAssignment.?principalType
+    condition: roleAssignment.?condition
+    conditionVersion: !empty(roleAssignment.?condition) ? (roleAssignment.?conditionVersion ?? '2.0') : null // Must only be set if condtion is set
+    delegatedManagedIdentityResourceId: roleAssignment.?delegatedManagedIdentityResourceId
   }
+  scope: managedCluster
 }]
 
 resource dnsZone 'Microsoft.Network/dnsZones@2018-05-01' existing = if (dnsZoneResourceId != null && webApplicationRoutingEnabled) {
-  name: last(split(dnsZoneResourceId, '/'))!
+  name: last(split((!empty(dnsZoneResourceId) ? dnsZoneResourceId : '/dummmyZone'), '/'))!
 }
 
 resource dnsZone_roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableDnsZoneContributorRoleAssignment == true && dnsZoneResourceId != null && webApplicationRoutingEnabled) {
@@ -646,7 +703,7 @@ output name string = managedCluster.name
 output controlPlaneFQDN string = enablePrivateCluster ? managedCluster.properties.privateFQDN : managedCluster.properties.fqdn
 
 @description('The principal ID of the system assigned identity.')
-output systemAssignedPrincipalId string = systemAssignedIdentity && contains(managedCluster.identity, 'principalId') ? managedCluster.identity.principalId : ''
+output systemAssignedMIPrincipalId string = (managedIdentities.?systemAssigned ?? false) && contains(managedCluster.identity, 'principalId') ? managedCluster.identity.principalId : ''
 
 @description('The Object ID of the AKS identity.')
 output kubeletidentityObjectId string = contains(managedCluster.properties, 'identityProfile') ? contains(managedCluster.properties.identityProfile, 'kubeletidentity') ? managedCluster.properties.identityProfile.kubeletidentity.objectId : '' : ''
@@ -654,8 +711,98 @@ output kubeletidentityObjectId string = contains(managedCluster.properties, 'ide
 @description('The Object ID of the OMS agent identity.')
 output omsagentIdentityObjectId string = contains(managedCluster.properties, 'addonProfiles') ? contains(managedCluster.properties.addonProfiles, 'omsagent') ? contains(managedCluster.properties.addonProfiles.omsagent, 'identity') ? managedCluster.properties.addonProfiles.omsagent.identity.objectId : '' : '' : ''
 
+@description('The Object ID of the Key Vault Secrets Provider identity.')
+output keyvaultIdentityObjectId string = contains(managedCluster.properties, 'addonProfiles') ? contains(managedCluster.properties.addonProfiles, 'azureKeyvaultSecretsProvider') ? contains(managedCluster.properties.addonProfiles.azureKeyvaultSecretsProvider, 'identity') ? managedCluster.properties.addonProfiles.azureKeyvaultSecretsProvider.identity.objectId : '' : '' : ''
+
+@description('The Client ID of the Key Vault Secrets Provider identity.')
+output keyvaultIdentityClientId string = contains(managedCluster.properties, 'addonProfiles') ? contains(managedCluster.properties.addonProfiles, 'azureKeyvaultSecretsProvider') ? contains(managedCluster.properties.addonProfiles.azureKeyvaultSecretsProvider, 'identity') ? managedCluster.properties.addonProfiles.azureKeyvaultSecretsProvider.identity.clientId : '' : '' : ''
+
 @description('The location the resource was deployed into.')
 output location string = managedCluster.location
 
 @description('The OIDC token issuer URL.')
 output oidcIssuerUrl string = enableOidcIssuerProfile ? managedCluster.properties.oidcIssuerProfile.issuerURL : ''
+
+@description('The addonProfiles of the Kubernetes cluster.')
+output addonProfiles object = contains(managedCluster.properties, 'addonProfiles') ? managedCluster.properties.addonProfiles : {}
+
+// =============== //
+//   Definitions   //
+// =============== //
+
+type managedIdentitiesType = {
+  @description('Optional. Enables system assigned managed identity on the resource.')
+  systemAssigned: bool?
+
+  @description('Optional. The resource ID(s) to assign to the resource.')
+  userAssignedResourceIds: string[]?
+}?
+
+type lockType = {
+  @description('Optional. Specify the name of lock.')
+  name: string?
+
+  @description('Optional. Specify the type of lock.')
+  kind: ('CanNotDelete' | 'ReadOnly' | 'None')?
+}?
+
+type roleAssignmentType = {
+  @description('Required. The name of the role to assign. If it cannot be found you can specify the role definition ID instead.')
+  roleDefinitionIdOrName: string
+
+  @description('Required. The principal ID of the principal (user/group/identity) to assign the role to.')
+  principalId: string
+
+  @description('Optional. The principal type of the assigned principal ID.')
+  principalType: ('ServicePrincipal' | 'Group' | 'User' | 'ForeignGroup' | 'Device')?
+
+  @description('Optional. The description of the role assignment.')
+  description: string?
+
+  @description('Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase "foo_storage_container"')
+  condition: string?
+
+  @description('Optional. Version of the condition.')
+  conditionVersion: '2.0'?
+
+  @description('Optional. The Resource Id of the delegated managed identity resource.')
+  delegatedManagedIdentityResourceId: string?
+}[]?
+
+type diagnosticSettingType = {
+  @description('Optional. The name of diagnostic setting.')
+  name: string?
+
+  @description('Optional. The name of logs that will be streamed. "allLogs" includes all possible logs for the resource. Set to \'\' to disable log collection.')
+  logCategoriesAndGroups: {
+    @description('Optional. Name of a Diagnostic Log category for a resource type this setting is applied to. Set the specific logs to collect here.')
+    category: string?
+
+    @description('Optional. Name of a Diagnostic Log category group for a resource type this setting is applied to. Set to \'AllLogs\' to collect all logs.')
+    categoryGroup: string?
+  }[]?
+
+  @description('Optional. The name of logs that will be streamed. "allLogs" includes all possible logs for the resource. Set to \'\' to disable log collection.')
+  metricCategories: {
+    @description('Required. Name of a Diagnostic Metric category for a resource type this setting is applied to. Set to \'AllMetrics\' to collect all metrics.')
+    category: string
+  }[]?
+
+  @description('Optional. A string indicating whether the export to Log Analytics should use the default destination type, i.e. AzureDiagnostics, or use a destination type.')
+  logAnalyticsDestinationType: ('Dedicated' | 'AzureDiagnostics')?
+
+  @description('Optional. Resource ID of the diagnostic log analytics workspace. For security reasons, it is recommended to set diagnostic settings to send data to either storage account, log analytics workspace or event hub.')
+  workspaceResourceId: string?
+
+  @description('Optional. Resource ID of the diagnostic storage account. For security reasons, it is recommended to set diagnostic settings to send data to either storage account, log analytics workspace or event hub.')
+  storageAccountResourceId: string?
+
+  @description('Optional. Resource ID of the diagnostic event hub authorization rule for the Event Hubs namespace in which the event hub should be created or streamed to.')
+  eventHubAuthorizationRuleResourceId: string?
+
+  @description('Optional. Name of the diagnostic event hub within the namespace to which logs are streamed. Without this, an event hub is created for each log category. For security reasons, it is recommended to set diagnostic settings to send data to either storage account, log analytics workspace or event hub.')
+  eventHubName: string?
+
+  @description('Optional. The full ARM resource ID of the Marketplace resource to which you would like to send Diagnostic Logs.')
+  marketplacePartnerResourceId: string?
+}[]?
