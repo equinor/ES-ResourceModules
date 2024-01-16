@@ -6,17 +6,23 @@ metadata owner = 'Azure/module-maintainers'
 @minLength(1)
 param name string
 
+@description('''Optional. Specifies the access mode of ingestion or queries through associated private endpoints in scope. For security reasons, it is recommended to use PrivateOnly whenever possible to avoid data exfiltration.
+
+  * Private Only - This mode allows the connected virtual network to reach only Private Link resources. It is the most secure mode and is set as the default when the `privateEndpoints` parameter is configured.
+  * Open - Allows the connected virtual network to reach both Private Link resources and the resources not in the AMPLS resource. Data exfiltration cannot be prevented in this mode.''')
+param accessModeSettings accessModeType
+
 @description('Optional. The location of the private link scope. Should be global.')
 param location string = 'global'
 
 @description('Optional. The lock settings of the service.')
 param lock lockType
 
-@description('Optional. Array of role assignment objects that contain the \'roleDefinitionIdOrName\' and \'principalId\' to define RBAC role assignments on this resource. In the roleDefinitionIdOrName attribute, you can provide either the display name of the role definition, or its fully qualified ID in the following format: \'/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11\'.')
+@description('Optional. Array of role assignments to create.')
 param roleAssignments roleAssignmentType
 
 @description('Optional. Configuration details for Azure Monitor Resources.')
-param scopedResources array = []
+param scopedResources scopedResourceType
 
 @description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
 param privateEndpoints privateEndpointType
@@ -49,14 +55,19 @@ resource defaultTelemetry 'Microsoft.Resources/deployments@2021-04-01' = if (ena
   }
 }
 
-resource privateLinkScope 'Microsoft.Insights/privateLinkScopes@2019-10-17-preview' = {
+resource privateLinkScope 'microsoft.insights/privateLinkScopes@2021-07-01-preview' = {
   name: name
   location: location
   tags: tags
-  properties: {}
+  properties: {
+    accessModeSettings: accessModeSettings ?? {
+      ingestionAccessMode: empty(privateEndpoints) ? 'Open' : 'PrivateOnly'
+      queryAccessMode: empty(privateEndpoints) ? 'Open' : 'PrivateOnly'
+    }
+  }
 }
 
-module privateLinkScope_scopedResource 'scoped-resource/main.bicep' = [for (scopedResource, index) in scopedResources: {
+module privateLinkScope_scopedResource 'scoped-resource/main.bicep' = [for (scopedResource, index) in (scopedResources ?? []): {
   name: '${uniqueString(deployment().name, location)}-PvtLinkScope-ScopedRes-${index}'
   params: {
     name: scopedResource.name
@@ -102,7 +113,7 @@ module privateLinkScope_privateEndpoints '../../network/private-endpoint/main.bi
 resource privateLinkScope_roleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for (roleAssignment, index) in (roleAssignments ?? []): {
   name: guid(privateLinkScope.id, roleAssignment.principalId, roleAssignment.roleDefinitionIdOrName)
   properties: {
-    roleDefinitionId: contains(builtInRoleNames, roleAssignment.roleDefinitionIdOrName) ? builtInRoleNames[roleAssignment.roleDefinitionIdOrName] : roleAssignment.roleDefinitionIdOrName
+    roleDefinitionId: contains(builtInRoleNames, roleAssignment.roleDefinitionIdOrName) ? builtInRoleNames[roleAssignment.roleDefinitionIdOrName] : contains(roleAssignment.roleDefinitionIdOrName, '/providers/Microsoft.Authorization/roleDefinitions/') ? roleAssignment.roleDefinitionIdOrName : subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleAssignment.roleDefinitionIdOrName)
     principalId: roleAssignment.principalId
     description: roleAssignment.?description
     principalType: roleAssignment.?principalType
@@ -138,7 +149,7 @@ type lockType = {
 }?
 
 type roleAssignmentType = {
-  @description('Required. The name of the role to assign. If it cannot be found you can specify the role definition ID instead.')
+  @description('Required. The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: \'/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11\'.')
   roleDefinitionIdOrName: string
 
   @description('Required. The principal ID of the principal (user/group/identity) to assign the role to.')
@@ -215,7 +226,7 @@ type privateEndpointType = {
   @description('Optional. Specify the type of lock.')
   lock: lockType
 
-  @description('Optional. Array of role assignment objects that contain the \'roleDefinitionIdOrName\' and \'principalId\' to define RBAC role assignments on this resource. In the roleDefinitionIdOrName attribute, you can provide either the display name of the role definition, or its fully qualified ID in the following format: \'/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11\'.')
+  @description('Optional. Array of role assignments to create.')
   roleAssignments: roleAssignmentType
 
   @description('Optional. Tags to be applied on all resources/resource groups in this deployment.')
@@ -227,3 +238,31 @@ type privateEndpointType = {
   @description('Optional. Enable/Disable usage telemetry for module.')
   enableTelemetry: bool?
 }[]?
+
+type scopedResourceType = {
+  @description('Required. Name of the private link scoped resource.')
+  name: string
+
+  @description('Required. The resource ID of the scoped Azure monitor resource.')
+  linkedResourceId: string
+}[]?
+
+type accessModeType = {
+  @description('Optional. List of exclusions that override the default access mode settings for specific private endpoint connections. Exclusions for the current created Private endpoints can only be applied post initial provisioning.')
+  exclusions: {
+    @description('Required. The private endpoint connection name associated to the private endpoint on which we want to apply the specific access mode settings.')
+    privateEndpointConnectionName: string
+
+    @description('Required. Specifies the access mode of ingestion through the specified private endpoint connection in the exclusion.')
+    ingestionAccessMode: 'Open' | 'PrivateOnly'
+
+    @description('Required. Specifies the access mode of queries through the specified private endpoint connection in the exclusion.')
+    queryAccessMode: 'Open' | 'PrivateOnly'
+  }[]?
+
+  @description('Required. Specifies the default access mode of ingestion through associated private endpoints in scope.')
+  ingestionAccessMode: 'Open' | 'PrivateOnly'
+
+  @description('Required. Specifies the default access mode of queries through associated private endpoints in scope.')
+  queryAccessMode: 'Open' | 'PrivateOnly'
+}?

@@ -1,5 +1,7 @@
 # Firewall Policies `[Microsoft.Network/firewallPolicies]`
 
+> This module has already been migrated to [AVM](https://github.com/Azure/bicep-registry-modules/tree/main/avm/res). Only the AVM version is expected to receive updates / new features. Please do not work on improving this module in [CARML](https://aka.ms/carml).
+
 This module deploys a Firewall Policy.
 
 ## Navigation
@@ -407,9 +409,17 @@ module firewallPolicy 'br:bicep/modules/network.firewall-policy:1.0.0' = {
 | [`tier`](#parameter-tier) | string | Tier of Firewall Policy. |
 | [`workspaces`](#parameter-workspaces) | array | List of workspaces for Firewall Policy Insights. |
 
+### Parameter: `name`
+
+Name of the Firewall Policy.
+
+- Required: Yes
+- Type: string
+
 ### Parameter: `allowSqlRedirect`
 
 A flag to indicate if SQL Redirect traffic filtering is enabled. Turning on the flag requires no rule using port 11000-11999.
+
 - Required: No
 - Type: bool
 - Default: `False`
@@ -417,6 +427,7 @@ A flag to indicate if SQL Redirect traffic filtering is enabled. Turning on the 
 ### Parameter: `autoLearnPrivateRanges`
 
 The operation mode for automatically learning private ranges to not be SNAT.
+
 - Required: No
 - Type: string
 - Default: `'Disabled'`
@@ -431,6 +442,7 @@ The operation mode for automatically learning private ranges to not be SNAT.
 ### Parameter: `basePolicyResourceId`
 
 Resource ID of the base policy.
+
 - Required: No
 - Type: string
 - Default: `''`
@@ -438,6 +450,7 @@ Resource ID of the base policy.
 ### Parameter: `bypassTrafficSettings`
 
 List of rules for traffic to bypass.
+
 - Required: No
 - Type: array
 - Default: `[]`
@@ -445,6 +458,7 @@ List of rules for traffic to bypass.
 ### Parameter: `certificateName`
 
 Name of the CA certificate.
+
 - Required: No
 - Type: string
 - Default: `''`
@@ -452,6 +466,7 @@ Name of the CA certificate.
 ### Parameter: `defaultWorkspaceId`
 
 Default Log Analytics Resource ID for Firewall Policy Insights.
+
 - Required: No
 - Type: string
 - Default: `''`
@@ -459,6 +474,7 @@ Default Log Analytics Resource ID for Firewall Policy Insights.
 ### Parameter: `enableDefaultTelemetry`
 
 Enable telemetry via a Globally Unique Identifier (GUID).
+
 - Required: No
 - Type: bool
 - Default: `True`
@@ -466,6 +482,7 @@ Enable telemetry via a Globally Unique Identifier (GUID).
 ### Parameter: `enableProxy`
 
 Enable DNS Proxy on Firewalls attached to the Firewall Policy.
+
 - Required: No
 - Type: bool
 - Default: `False`
@@ -473,6 +490,7 @@ Enable DNS Proxy on Firewalls attached to the Firewall Policy.
 ### Parameter: `fqdns`
 
 List of FQDNs for the ThreatIntel Allowlist.
+
 - Required: No
 - Type: array
 - Default: `[]`
@@ -480,6 +498,7 @@ List of FQDNs for the ThreatIntel Allowlist.
 ### Parameter: `insightsIsEnabled`
 
 A flag to indicate if the insights are enabled on the policy.
+
 - Required: No
 - Type: bool
 - Default: `False`
@@ -487,6 +506,7 @@ A flag to indicate if the insights are enabled on the policy.
 ### Parameter: `ipAddresses`
 
 List of IP addresses for the ThreatIntel Allowlist.
+
 - Required: No
 - Type: array
 - Default: `[]`
@@ -494,6 +514,7 @@ List of IP addresses for the ThreatIntel Allowlist.
 ### Parameter: `keyVaultSecretId`
 
 Secret ID of (base-64 encoded unencrypted PFX) Secret or Certificate object stored in KeyVault.
+
 - Required: No
 - Type: string
 - Default: `''`
@@ -501,6 +522,7 @@ Secret ID of (base-64 encoded unencrypted PFX) Secret or Certificate object stor
 ### Parameter: `location`
 
 Location for all resources.
+
 - Required: No
 - Type: string
 - Default: `[resourceGroup().location]`
@@ -508,17 +530,19 @@ Location for all resources.
 ### Parameter: `managedIdentities`
 
 The managed identity definition for this resource.
+
 - Required: No
 - Type: object
 
+**Optional parameters**
 
-| Name | Required | Type | Description |
-| :-- | :-- | :--| :-- |
-| [`userAssignedResourceIds`](#parameter-managedidentitiesuserassignedresourceids) | Yes | array | Optional. The resource ID(s) to assign to the resource. |
+| Parameter | Type | Description |
+| :-- | :-- | :-- |
+| [`userAssignedResourceIds`](#parameter-managedidentitiesuserassignedresourceids) | array | The resource ID(s) to assign to the resource. |
 
 ### Parameter: `managedIdentities.userAssignedResourceIds`
 
-Optional. The resource ID(s) to assign to the resource.
+The resource ID(s) to assign to the resource.
 
 - Required: Yes
 - Type: array
@@ -526,6 +550,7 @@ Optional. The resource ID(s) to assign to the resource.
 ### Parameter: `mode`
 
 The configuring of intrusion detection.
+
 - Required: No
 - Type: string
 - Default: `'Off'`
@@ -538,15 +563,10 @@ The configuring of intrusion detection.
   ]
   ```
 
-### Parameter: `name`
-
-Name of the Firewall Policy.
-- Required: Yes
-- Type: string
-
 ### Parameter: `privateRanges`
 
 List of private IP addresses/IP address ranges to not be SNAT.
+
 - Required: No
 - Type: array
 - Default: `[]`
@@ -554,6 +574,7 @@ List of private IP addresses/IP address ranges to not be SNAT.
 ### Parameter: `retentionDays`
 
 Number of days the insights should be enabled on the policy.
+
 - Required: No
 - Type: int
 - Default: `365`
@@ -561,6 +582,7 @@ Number of days the insights should be enabled on the policy.
 ### Parameter: `ruleCollectionGroups`
 
 Rule collection groups.
+
 - Required: No
 - Type: array
 - Default: `[]`
@@ -568,6 +590,7 @@ Rule collection groups.
 ### Parameter: `servers`
 
 List of Custom DNS Servers.
+
 - Required: No
 - Type: array
 - Default: `[]`
@@ -575,6 +598,7 @@ List of Custom DNS Servers.
 ### Parameter: `signatureOverrides`
 
 List of specific signatures states.
+
 - Required: No
 - Type: array
 - Default: `[]`
@@ -582,12 +606,14 @@ List of specific signatures states.
 ### Parameter: `tags`
 
 Tags of the Firewall policy resource.
+
 - Required: No
 - Type: object
 
 ### Parameter: `threatIntelMode`
 
 The operation mode for Threat Intel.
+
 - Required: No
 - Type: string
 - Default: `'Off'`
@@ -603,6 +629,7 @@ The operation mode for Threat Intel.
 ### Parameter: `tier`
 
 Tier of Firewall Policy.
+
 - Required: No
 - Type: string
 - Default: `'Standard'`
@@ -617,6 +644,7 @@ Tier of Firewall Policy.
 ### Parameter: `workspaces`
 
 List of workspaces for Firewall Policy Insights.
+
 - Required: No
 - Type: array
 - Default: `[]`

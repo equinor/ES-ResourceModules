@@ -1,5 +1,7 @@
 # App ManagedEnvironments `[Microsoft.App/managedEnvironments]`
 
+> This module has already been migrated to [AVM](https://github.com/Azure/bicep-registry-modules/tree/main/avm/res). Only the AVM version is expected to receive updates / new features. Please do not work on improving this module in [CARML](https://aka.ms/carml).
+
 This module deploys an App Managed Environment (also known as a Container App Environment).
 
 ## Navigation
@@ -14,7 +16,7 @@ This module deploys an App Managed Environment (also known as a Container App En
 
 | Resource Type | API Version |
 | :-- | :-- |
-| `Microsoft.App/managedEnvironments` | [2022-10-01](https://learn.microsoft.com/en-us/azure/templates/Microsoft.App/2022-10-01/managedEnvironments) |
+| `Microsoft.App/managedEnvironments` | [2023-05-01](https://learn.microsoft.com/en-us/azure/templates/Microsoft.App/2023-05-01/managedEnvironments) |
 | `Microsoft.Authorization/locks` | [2020-05-01](https://learn.microsoft.com/en-us/azure/templates/Microsoft.Authorization/2020-05-01/locks) |
 | `Microsoft.Authorization/roleAssignments` | [2022-04-01](https://learn.microsoft.com/en-us/azure/templates/Microsoft.Authorization/2022-04-01/roleAssignments) |
 
@@ -99,6 +101,7 @@ module managedEnvironment 'br:bicep/modules/app.managed-environment:1.0.0' = {
     name: 'amemax001'
     // Non-required parameters
     dockerBridgeCidr: '172.16.0.1/28'
+    infrastructureResourceGroupName: '<infrastructureResourceGroupName>'
     infrastructureSubnetId: '<infrastructureSubnetId>'
     internal: true
     location: '<location>'
@@ -108,11 +111,11 @@ module managedEnvironment 'br:bicep/modules/app.managed-environment:1.0.0' = {
     }
     platformReservedCidr: '172.17.17.0/24'
     platformReservedDnsIP: '172.17.17.17'
-    skuName: 'Consumption'
     tags: {
       Env: 'test'
       'hidden-title': 'This is visible in the resource name'
     }
+    workloadProfiles: '<workloadProfiles>'
   }
 }
 ```
@@ -143,6 +146,9 @@ module managedEnvironment 'br:bicep/modules/app.managed-environment:1.0.0' = {
     "dockerBridgeCidr": {
       "value": "172.16.0.1/28"
     },
+    "infrastructureResourceGroupName": {
+      "value": "<infrastructureResourceGroupName>"
+    },
     "infrastructureSubnetId": {
       "value": "<infrastructureSubnetId>"
     },
@@ -164,14 +170,14 @@ module managedEnvironment 'br:bicep/modules/app.managed-environment:1.0.0' = {
     "platformReservedDnsIP": {
       "value": "172.17.17.17"
     },
-    "skuName": {
-      "value": "Consumption"
-    },
     "tags": {
       "value": {
         "Env": "test",
         "hidden-title": "This is visible in the resource name"
       }
+    },
+    "workloadProfiles": {
+      "value": "<workloadProfiles>"
     }
   }
 }
@@ -199,6 +205,7 @@ module managedEnvironment 'br:bicep/modules/app.managed-environment:1.0.0' = {
     name: 'amewaf001'
     // Non-required parameters
     dockerBridgeCidr: '172.16.0.1/28'
+    infrastructureResourceGroupName: '<infrastructureResourceGroupName>'
     infrastructureSubnetId: '<infrastructureSubnetId>'
     internal: true
     location: '<location>'
@@ -208,11 +215,11 @@ module managedEnvironment 'br:bicep/modules/app.managed-environment:1.0.0' = {
     }
     platformReservedCidr: '172.17.17.0/24'
     platformReservedDnsIP: '172.17.17.17'
-    skuName: 'Consumption'
     tags: {
       Env: 'test'
       'hidden-title': 'This is visible in the resource name'
     }
+    workloadProfiles: '<workloadProfiles>'
   }
 }
 ```
@@ -243,6 +250,9 @@ module managedEnvironment 'br:bicep/modules/app.managed-environment:1.0.0' = {
     "dockerBridgeCidr": {
       "value": "172.16.0.1/28"
     },
+    "infrastructureResourceGroupName": {
+      "value": "<infrastructureResourceGroupName>"
+    },
     "infrastructureSubnetId": {
       "value": "<infrastructureSubnetId>"
     },
@@ -264,14 +274,14 @@ module managedEnvironment 'br:bicep/modules/app.managed-environment:1.0.0' = {
     "platformReservedDnsIP": {
       "value": "172.17.17.17"
     },
-    "skuName": {
-      "value": "Consumption"
-    },
     "tags": {
       "value": {
         "Env": "test",
         "hidden-title": "This is visible in the resource name"
       }
+    },
+    "workloadProfiles": {
+      "value": "<workloadProfiles>"
     }
   }
 }
@@ -307,21 +317,44 @@ module managedEnvironment 'br:bicep/modules/app.managed-environment:1.0.0' = {
 | [`dnsSuffix`](#parameter-dnssuffix) | string | DNS suffix for the environment domain. |
 | [`dockerBridgeCidr`](#parameter-dockerbridgecidr) | string | CIDR notation IP range assigned to the Docker bridge, network. It must not overlap with any other provided IP ranges and can only be used when the environment is deployed into a virtual network. If not provided, it will be set with a default value by the platform. |
 | [`enableDefaultTelemetry`](#parameter-enabledefaulttelemetry) | bool | Enable telemetry via a Globally Unique Identifier (GUID). |
+| [`infrastructureResourceGroupName`](#parameter-infrastructureresourcegroupname) | string | Name of the infrastructure resource group. If not provided, it will be set with a default value. |
 | [`internal`](#parameter-internal) | bool | Boolean indicating the environment only has an internal load balancer. These environments do not have a public static IP resource. If set to true, then "infrastructureSubnetId" must be provided. |
 | [`location`](#parameter-location) | string | Location for all Resources. |
 | [`lock`](#parameter-lock) | object | The lock settings of the service. |
 | [`logsDestination`](#parameter-logsdestination) | string | Logs destination. |
 | [`platformReservedCidr`](#parameter-platformreservedcidr) | string | IP range in CIDR notation that can be reserved for environment infrastructure IP addresses. It must not overlap with any other provided IP ranges and can only be used when the environment is deployed into a virtual network. If not provided, it will be set with a default value by the platform. |
 | [`platformReservedDnsIP`](#parameter-platformreserveddnsip) | string | An IP address from the IP range defined by "platformReservedCidr" that will be reserved for the internal DNS server. It must not be the first address in the range and can only be used when the environment is deployed into a virtual network. If not provided, it will be set with a default value by the platform. |
-| [`roleAssignments`](#parameter-roleassignments) | array | Array of role assignment objects that contain the 'roleDefinitionIdOrName' and 'principalId' to define RBAC role assignments on this resource. In the roleDefinitionIdOrName attribute, you can provide either the display name of the role definition, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'. |
-| [`skuName`](#parameter-skuname) | string | Managed environment SKU. |
+| [`roleAssignments`](#parameter-roleassignments) | array | Array of role assignments to create. |
 | [`tags`](#parameter-tags) | object | Tags of the resource. |
 | [`workloadProfiles`](#parameter-workloadprofiles) | array | Workload profiles configured for the Managed Environment. |
 | [`zoneRedundant`](#parameter-zoneredundant) | bool | Whether or not this Managed Environment is zone-redundant. |
 
+### Parameter: `logAnalyticsWorkspaceResourceId`
+
+Existing Log Analytics Workspace resource ID. Note: This value is not required as per the resource type. However, not providing it currently causes an issue that is tracked [here](https://github.com/Azure/bicep/issues/9990).
+
+- Required: Yes
+- Type: string
+
+### Parameter: `name`
+
+Name of the Container Apps Managed Environment.
+
+- Required: Yes
+- Type: string
+
+### Parameter: `infrastructureSubnetId`
+
+Resource ID of a subnet for infrastructure components. This is used to deploy the environment into a virtual network. Must not overlap with any other provided IP ranges. Required if "internal" is set to true.
+
+- Required: No
+- Type: string
+- Default: `''`
+
 ### Parameter: `certificatePassword`
 
 Password of the certificate used by the custom domain.
+
 - Required: No
 - Type: securestring
 - Default: `''`
@@ -329,6 +362,7 @@ Password of the certificate used by the custom domain.
 ### Parameter: `certificateValue`
 
 Certificate to use for the custom domain. PFX or PEM.
+
 - Required: No
 - Type: securestring
 - Default: `''`
@@ -336,6 +370,7 @@ Certificate to use for the custom domain. PFX or PEM.
 ### Parameter: `daprAIConnectionString`
 
 Application Insights connection string used by Dapr to export Service to Service communication telemetry.
+
 - Required: No
 - Type: securestring
 - Default: `''`
@@ -343,6 +378,7 @@ Application Insights connection string used by Dapr to export Service to Service
 ### Parameter: `daprAIInstrumentationKey`
 
 Azure Monitor instrumentation key used by Dapr to export Service to Service communication telemetry.
+
 - Required: No
 - Type: securestring
 - Default: `''`
@@ -350,6 +386,7 @@ Azure Monitor instrumentation key used by Dapr to export Service to Service comm
 ### Parameter: `dnsSuffix`
 
 DNS suffix for the environment domain.
+
 - Required: No
 - Type: string
 - Default: `''`
@@ -357,6 +394,7 @@ DNS suffix for the environment domain.
 ### Parameter: `dockerBridgeCidr`
 
 CIDR notation IP range assigned to the Docker bridge, network. It must not overlap with any other provided IP ranges and can only be used when the environment is deployed into a virtual network. If not provided, it will be set with a default value by the platform.
+
 - Required: No
 - Type: string
 - Default: `''`
@@ -364,19 +402,22 @@ CIDR notation IP range assigned to the Docker bridge, network. It must not overl
 ### Parameter: `enableDefaultTelemetry`
 
 Enable telemetry via a Globally Unique Identifier (GUID).
+
 - Required: Yes
 - Type: bool
 
-### Parameter: `infrastructureSubnetId`
+### Parameter: `infrastructureResourceGroupName`
 
-Resource ID of a subnet for infrastructure components. This is used to deploy the environment into a virtual network. Must not overlap with any other provided IP ranges. Required if "internal" is set to true.
+Name of the infrastructure resource group. If not provided, it will be set with a default value.
+
 - Required: No
 - Type: string
-- Default: `''`
+- Default: `[take(format('ME_{0}', parameters('name')), 63)]`
 
 ### Parameter: `internal`
 
 Boolean indicating the environment only has an internal load balancer. These environments do not have a public static IP resource. If set to true, then "infrastructureSubnetId" must be provided.
+
 - Required: No
 - Type: bool
 - Default: `False`
@@ -384,6 +425,7 @@ Boolean indicating the environment only has an internal load balancer. These env
 ### Parameter: `location`
 
 Location for all Resources.
+
 - Required: No
 - Type: string
 - Default: `[resourceGroup().location]`
@@ -391,52 +433,51 @@ Location for all Resources.
 ### Parameter: `lock`
 
 The lock settings of the service.
+
 - Required: No
 - Type: object
 
+**Optional parameters**
 
-| Name | Required | Type | Description |
-| :-- | :-- | :--| :-- |
-| [`kind`](#parameter-lockkind) | No | string | Optional. Specify the type of lock. |
-| [`name`](#parameter-lockname) | No | string | Optional. Specify the name of lock. |
+| Parameter | Type | Description |
+| :-- | :-- | :-- |
+| [`kind`](#parameter-lockkind) | string | Specify the type of lock. |
+| [`name`](#parameter-lockname) | string | Specify the name of lock. |
 
 ### Parameter: `lock.kind`
 
-Optional. Specify the type of lock.
+Specify the type of lock.
 
 - Required: No
 - Type: string
-- Allowed: `[CanNotDelete, None, ReadOnly]`
+- Allowed:
+  ```Bicep
+  [
+    'CanNotDelete'
+    'None'
+    'ReadOnly'
+  ]
+  ```
 
 ### Parameter: `lock.name`
 
-Optional. Specify the name of lock.
+Specify the name of lock.
 
 - Required: No
-- Type: string
-
-### Parameter: `logAnalyticsWorkspaceResourceId`
-
-Existing Log Analytics Workspace resource ID. Note: This value is not required as per the resource type. However, not providing it currently causes an issue that is tracked [here](https://github.com/Azure/bicep/issues/9990).
-- Required: Yes
 - Type: string
 
 ### Parameter: `logsDestination`
 
 Logs destination.
+
 - Required: No
 - Type: string
 - Default: `'log-analytics'`
 
-### Parameter: `name`
-
-Name of the Container Apps Managed Environment.
-- Required: Yes
-- Type: string
-
 ### Parameter: `platformReservedCidr`
 
 IP range in CIDR notation that can be reserved for environment infrastructure IP addresses. It must not overlap with any other provided IP ranges and can only be used when the environment is deployed into a virtual network. If not provided, it will be set with a default value by the platform.
+
 - Required: No
 - Type: string
 - Default: `''`
@@ -444,101 +485,111 @@ IP range in CIDR notation that can be reserved for environment infrastructure IP
 ### Parameter: `platformReservedDnsIP`
 
 An IP address from the IP range defined by "platformReservedCidr" that will be reserved for the internal DNS server. It must not be the first address in the range and can only be used when the environment is deployed into a virtual network. If not provided, it will be set with a default value by the platform.
+
 - Required: No
 - Type: string
 - Default: `''`
 
 ### Parameter: `roleAssignments`
 
-Array of role assignment objects that contain the 'roleDefinitionIdOrName' and 'principalId' to define RBAC role assignments on this resource. In the roleDefinitionIdOrName attribute, you can provide either the display name of the role definition, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'.
+Array of role assignments to create.
+
 - Required: No
 - Type: array
 
+**Required parameters**
 
-| Name | Required | Type | Description |
-| :-- | :-- | :--| :-- |
-| [`condition`](#parameter-roleassignmentscondition) | No | string | Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase "foo_storage_container" |
-| [`conditionVersion`](#parameter-roleassignmentsconditionversion) | No | string | Optional. Version of the condition. |
-| [`delegatedManagedIdentityResourceId`](#parameter-roleassignmentsdelegatedmanagedidentityresourceid) | No | string | Optional. The Resource Id of the delegated managed identity resource. |
-| [`description`](#parameter-roleassignmentsdescription) | No | string | Optional. The description of the role assignment. |
-| [`principalId`](#parameter-roleassignmentsprincipalid) | Yes | string | Required. The principal ID of the principal (user/group/identity) to assign the role to. |
-| [`principalType`](#parameter-roleassignmentsprincipaltype) | No | string | Optional. The principal type of the assigned principal ID. |
-| [`roleDefinitionIdOrName`](#parameter-roleassignmentsroledefinitionidorname) | Yes | string | Required. The name of the role to assign. If it cannot be found you can specify the role definition ID instead. |
+| Parameter | Type | Description |
+| :-- | :-- | :-- |
+| [`principalId`](#parameter-roleassignmentsprincipalid) | string | The principal ID of the principal (user/group/identity) to assign the role to. |
+| [`roleDefinitionIdOrName`](#parameter-roleassignmentsroledefinitionidorname) | string | The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'. |
+
+**Optional parameters**
+
+| Parameter | Type | Description |
+| :-- | :-- | :-- |
+| [`condition`](#parameter-roleassignmentscondition) | string | The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase "foo_storage_container" |
+| [`conditionVersion`](#parameter-roleassignmentsconditionversion) | string | Version of the condition. |
+| [`delegatedManagedIdentityResourceId`](#parameter-roleassignmentsdelegatedmanagedidentityresourceid) | string | The Resource Id of the delegated managed identity resource. |
+| [`description`](#parameter-roleassignmentsdescription) | string | The description of the role assignment. |
+| [`principalType`](#parameter-roleassignmentsprincipaltype) | string | The principal type of the assigned principal ID. |
+
+### Parameter: `roleAssignments.principalId`
+
+The principal ID of the principal (user/group/identity) to assign the role to.
+
+- Required: Yes
+- Type: string
+
+### Parameter: `roleAssignments.roleDefinitionIdOrName`
+
+The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'.
+
+- Required: Yes
+- Type: string
 
 ### Parameter: `roleAssignments.condition`
 
-Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase "foo_storage_container"
+The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase "foo_storage_container"
 
 - Required: No
 - Type: string
 
 ### Parameter: `roleAssignments.conditionVersion`
 
-Optional. Version of the condition.
+Version of the condition.
 
 - Required: No
 - Type: string
-- Allowed: `[2.0]`
+- Allowed:
+  ```Bicep
+  [
+    '2.0'
+  ]
+  ```
 
 ### Parameter: `roleAssignments.delegatedManagedIdentityResourceId`
 
-Optional. The Resource Id of the delegated managed identity resource.
+The Resource Id of the delegated managed identity resource.
 
 - Required: No
 - Type: string
 
 ### Parameter: `roleAssignments.description`
 
-Optional. The description of the role assignment.
+The description of the role assignment.
 
 - Required: No
-- Type: string
-
-### Parameter: `roleAssignments.principalId`
-
-Required. The principal ID of the principal (user/group/identity) to assign the role to.
-
-- Required: Yes
 - Type: string
 
 ### Parameter: `roleAssignments.principalType`
 
-Optional. The principal type of the assigned principal ID.
+The principal type of the assigned principal ID.
 
 - Required: No
 - Type: string
-- Allowed: `[Device, ForeignGroup, Group, ServicePrincipal, User]`
-
-### Parameter: `roleAssignments.roleDefinitionIdOrName`
-
-Required. The name of the role to assign. If it cannot be found you can specify the role definition ID instead.
-
-- Required: Yes
-- Type: string
-
-### Parameter: `skuName`
-
-Managed environment SKU.
-- Required: No
-- Type: string
-- Default: `'Consumption'`
 - Allowed:
   ```Bicep
   [
-    'Consumption'
-    'Premium'
+    'Device'
+    'ForeignGroup'
+    'Group'
+    'ServicePrincipal'
+    'User'
   ]
   ```
 
 ### Parameter: `tags`
 
 Tags of the resource.
+
 - Required: No
 - Type: object
 
 ### Parameter: `workloadProfiles`
 
 Workload profiles configured for the Managed Environment.
+
 - Required: No
 - Type: array
 - Default: `[]`
@@ -546,6 +597,7 @@ Workload profiles configured for the Managed Environment.
 ### Parameter: `zoneRedundant`
 
 Whether or not this Managed Environment is zone-redundant.
+
 - Required: No
 - Type: bool
 - Default: `False`
@@ -555,6 +607,7 @@ Whether or not this Managed Environment is zone-redundant.
 
 | Output | Type | Description |
 | :-- | :-- | :-- |
+| `defaultDomain` | string | The Default domain of the Managed Environment. |
 | `location` | string | The location the resource was deployed into. |
 | `name` | string | The name of the Managed Environment. |
 | `resourceGroupName` | string | The name of the resource group the Managed Environment was deployed into. |

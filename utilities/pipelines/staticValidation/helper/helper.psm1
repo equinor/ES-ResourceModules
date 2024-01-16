@@ -5,7 +5,6 @@ $repoRootPath = (Get-Item $PSScriptRoot).Parent.Parent.Parent.Parent.FullName
 
 . (Join-Path $repoRootPath 'utilities' 'pipelines' 'sharedScripts' 'Get-NestedResourceList.ps1')
 . (Join-Path $repoRootPath 'utilities' 'pipelines' 'sharedScripts' 'Get-ScopeOfTemplateFile.ps1')
-. (Join-Path $repoRootPath 'utilities' 'pipelines' 'sharedScripts' 'Get-ModuleTestFileList.ps1')
 . (Join-Path $repoRootPath 'utilities' 'pipelines' 'sharedScripts' 'helper' 'ConvertTo-OrderedHashtable.ps1')
 . (Join-Path $repoRootPath 'utilities' 'pipelines' 'sharedScripts' 'helper' 'Get-IsParameterRequired.ps1')
 . (Join-Path $repoRootPath 'utilities' 'tools' 'Get-CrossReferencedModuleList.ps1')
@@ -162,14 +161,14 @@ function Remove-JSONMetadata {
         # Case: Hashtable
         $resourceIdentifiers = $TemplateObject.resources.Keys
         for ($index = 0; $index -lt $resourceIdentifiers.Count; $index++) {
-            if ($TemplateObject.resources[$resourceIdentifiers[$index]].type -eq 'Microsoft.Resources/deployments') {
+            if ($TemplateObject.resources[$resourceIdentifiers[$index]].type -eq 'Microsoft.Resources/deployments' -and $TemplateObject.resources[$resourceIdentifiers[$index]].properties.template.GetType().BaseType.Name -eq 'Hashtable') {
                 $TemplateObject.resources[$resourceIdentifiers[$index]] = Remove-JSONMetadata -TemplateObject $TemplateObject.resources[$resourceIdentifiers[$index]].properties.template
             }
         }
     } else {
         # Case: Array
         for ($index = 0; $index -lt $TemplateObject.resources.Count; $index++) {
-            if ($TemplateObject.resources[$index].type -eq 'Microsoft.Resources/deployments') {
+            if ($TemplateObject.resources[$index].type -eq 'Microsoft.Resources/deployments' -and $TemplateObject.resources[$index].properties.template.GetType().BaseType.Name -eq 'Hashtable') {
                 $TemplateObject.resources[$index] = Remove-JSONMetadata -TemplateObject $TemplateObject.resources[$index].properties.template
             }
         }

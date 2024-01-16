@@ -9,7 +9,7 @@ targetScope = 'subscription'
 param resourceGroupName string = 'dep-${namePrefix}-compute.virtualmachinescalesets-${serviceShort}-rg'
 
 @description('Optional. The location to deploy resources to.')
-param location string = deployment().location
+param location string = 'westeurope' //deployment().location
 
 @description('Optional. A short identifier for the kind of deployment. Should be kept short to not run into resource-name length-constraints.')
 param serviceShort string = 'cvmsslin'
@@ -63,9 +63,10 @@ module diagnosticDependencies '../../../../../.shared/.templates/diagnostic.depe
 // Test Execution //
 // ============== //
 
-module testDeployment '../../../main.bicep' = {
+@batchSize(1)
+module testDeployment '../../../main.bicep' = [for iteration in [ 'init', 'idem' ]: {
   scope: resourceGroup
-  name: '${uniqueString(deployment().name, location)}-test-${serviceShort}'
+  name: '${uniqueString(deployment().name, location)}-test-${serviceShort}-${iteration}'
   params: {
     enableDefaultTelemetry: enableDefaultTelemetry
     name: '${namePrefix}${serviceShort}001'
@@ -206,4 +207,4 @@ module testDeployment '../../../main.bicep' = {
       Role: 'DeploymentValidation'
     }
   }
-}
+}]

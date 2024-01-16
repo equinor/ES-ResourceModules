@@ -51,16 +51,6 @@ module nestedDependencies 'dependencies.bicep' = {
   }
 }
 
-// required for the Azure Image Builder service to assign the list of User Assigned Identities to the Build VM.
-resource msi_managedIdentityOperatorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, 'ManagedIdentityContributor', '${namePrefix}')
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f1a07417-d97a-45cb-824c-7a7467783830') // Managed Identity Operator
-    principalId: nestedDependencies.outputs.managedIdentityPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
 // ============== //
 // Test Execution //
 // ============== //
@@ -92,13 +82,6 @@ module testDeployment '../../../main.bicep' = {
     }
     managedImageName: '${namePrefix}-mi-${serviceShort}-001'
     osDiskSizeGB: 127
-    roleAssignments: [
-      {
-        roleDefinitionIdOrName: 'Reader'
-        principalId: nestedDependencies.outputs.managedIdentityPrincipalId
-        principalType: 'ServicePrincipal'
-      }
-    ]
     sigImageDefinitionId: nestedDependencies.outputs.sigImageDefinitionId
     sigImageVersion: sigImageVersion
     subnetId: nestedDependencies.outputs.subnetId

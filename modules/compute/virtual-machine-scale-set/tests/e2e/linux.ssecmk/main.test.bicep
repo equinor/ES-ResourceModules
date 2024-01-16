@@ -52,10 +52,14 @@ module nestedDependencies 'dependencies.bicep' = {
 // ============== //
 // Test Execution //
 // ============== //
-module testDeployment '../../../main.bicep' = {
+@batchSize(1)
+module testDeployment '../../../main.bicep' = [for iteration in [ 'init', 'idem' ]: {
   scope: resourceGroup
-  name: '${uniqueString(deployment().name, location)}-test-${serviceShort}'
+  name: '${uniqueString(deployment().name, location)}-test-${serviceShort}-${iteration}'
   params: {
+    extensionMonitoringAgentConfig: {
+      enabled: true
+    }
     enableDefaultTelemetry: enableDefaultTelemetry
     location: location
     name: '${namePrefix}${serviceShort}001'
@@ -119,4 +123,4 @@ module testDeployment '../../../main.bicep' = {
       Role: 'DeploymentValidation'
     }
   }
-}
+}]
